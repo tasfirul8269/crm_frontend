@@ -229,20 +229,24 @@ export function PropertyCard({ property, onStatusChange, onToggleActive }: Prope
                     </div>
                     <span className="line-clamp-1">
                         {(() => {
+                            const title = property.propertyTitle?.trim()?.toLowerCase();
+
                             // Priority 1: Use Property Finder location path (most accurate)
-                            if (property.pfLocationPath) {
-                                return property.pfLocationPath;
+                            // But skip if it's the same as the title (common data entry issue)
+                            const pfPath = property.pfLocationPath?.trim();
+                            if (pfPath && pfPath.toLowerCase() !== title) {
+                                return pfPath;
                             }
 
                             // Priority 2: Use address if it's different from title
                             const addr = property.address?.trim();
-                            if (addr && addr !== property.propertyTitle) {
+                            if (addr && addr.toLowerCase() !== title) {
                                 return addr;
                             }
 
                             // Priority 3: Use emirate
                             const emirate = property.emirate?.trim();
-                            if (emirate) {
+                            if (emirate && emirate.toLowerCase() !== title) {
                                 return emirate;
                             }
 

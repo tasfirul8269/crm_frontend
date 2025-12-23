@@ -67,7 +67,9 @@ export function PfLocationAutocomplete({
                 // Using axios directly or confirm path. Assuming standard axios setup.
                 // If api helper not found, fall back to fetch
                 // Let's assume relative path /api/properties/pf-locations works if proxy is set up or full URL
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/properties/pf-locations?search=${encodeURIComponent(debouncedSearchQuery)}`, {
+                // Use centralized API URL
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                const response = await fetch(`${apiUrl}/properties/pf-locations?search=${encodeURIComponent(debouncedSearchQuery)}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}` // Basic auth handling
                     }

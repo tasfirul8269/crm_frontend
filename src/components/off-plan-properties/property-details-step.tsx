@@ -196,7 +196,8 @@ export function PropertyDetailsStep({ developerId, initialData, onSubmit, onSave
 
             if (token) {
                 // Use fetch with keepalive for more reliability
-                fetch('http://localhost:3001/off-plan-properties', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                fetch(`${apiUrl}/off-plan-properties`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
