@@ -385,3 +385,68 @@ export const fetchMissingLocationPaths = async (): Promise<{
     const response = await api.post('/properties/fetch-missing-location-paths');
     return response.data;
 };
+
+// ============ DRAFTS ============
+
+export interface PropertyDraft {
+    id: string;
+    data: CreatePropertyData;
+    originalPropertyId?: string;
+    userId?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export const saveDraft = async (data: CreatePropertyData, originalPropertyId?: string): Promise<PropertyDraft> => {
+    // We send data as JSON body, simplified compared to FormData since files are tougher with drafts unless uploaded separately.
+    // For now, assuming files are already uploaded or we handle them differently (users might need to re-upload files if not persisted).
+    // Or, we can use FormData if backend handles it.
+    // Backend `drafts.controller.ts` expects body directly.
+    // If complex file handling needed, we might need a different approach for drafts (e.g. upload files first, get URLs, save URLs in draft).
+    // Given the previous architecture, files were uploaded via FormData.
+    // For Drafts, we might simplify: We save the *text* data. Files might be lost if not committed.
+    // OR we assume files are just standard File objects which cannot be JSON serialized easily.
+    // User requirement: "all in drafts tab".
+    // Let's serialize what we can. File objects will be empty objects in JSON.
+    // Ideally, "Save as Draft" should upload files to temp storage or we just save metadata.
+    // Let's send the form data but as JSON, excluding File objects or converting them if they are URLs (strings).
+
+    // Filter out File objects for now or handle them?
+    // If we want to persist files, we should upload them.
+    // But `saveDraft` endpoint in generic controller `createOrUpdate` expects JSON body.
+
+    // Strategy: Serialize data. If files are URL strings (already uploaded), keep them. If File objects, we can't save them in JSON DB easily without uploading.
+    // For now, let's just save the JSON data.
+
+    const draftPayload = {
+        ...data,
+        originalPropertyId,
+        // Remove File objects to avoid serialization issues or circular refs
+        // We'll rely on the user to re-upload files or if they are already strings (URLs) they are kept.
+        coverPhoto: typeof data.coverPhoto === 'string' ? data.coverPhoto : undefined,
+        mediaImages: Array.isArray(data.mediaImages)
+            ? data.mediaImages.filter(img => typeof img === 'string')
+            : [],
+        nocDocument: typeof data.nocDocument === 'string' ? data.nocDocument : undefined,
+        passportCopy: typeof data.passportCopy === 'string' ? data.passportCopy : undefined,
+        emiratesIdScan: typeof data.emiratesIdScan === 'string' ? data.emiratesIdScan : undefined,
+        titleDeed: typeof data.titleDeed === 'string' ? data.titleDeed : undefined,
+    };
+
+    const response = await api.post<PropertyDraft>('/properties/drafts', draftPayload);
+    return response.data;
+};
+
+export const getDrafts = async (): Promise<PropertyDraft[]> => {
+    const response = await api.get<PropertyDraft[]>('/properties/drafts');
+    return response.data;
+};
+
+export const getDraft = async (id: string): Promise<PropertyDraft> => {
+    const response = await api.get<PropertyDraft>(`/properties/drafts/${id}`);
+    return response.data;
+};
+
+export const deleteDraft = async (id: string): Promise<void> => {
+    await api.delete(`/properties/drafts/${id}`);
+};

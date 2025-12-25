@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Check, Info, AlertTriangle, XCircle, CheckCircle2, X, Filter, Calendar, ArrowRight } from 'lucide-react';
 import {
@@ -239,6 +239,7 @@ export function NotificationsDropdown() {
     const queryClient = useQueryClient();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const id = useId();
 
     // Poll every 30 seconds to catch the 15-min warning and start/end events
     const { data: notifications = [] } = useQuery({
@@ -284,7 +285,7 @@ export function NotificationsDropdown() {
         <>
             <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
                 <DropdownMenuTrigger asChild>
-                    <button className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100 outline-none transition-colors">
+                    <button id={id} className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100 outline-none transition-colors">
                         <Bell className="h-5 w-5" />
                         {unreadCount > 0 && (
                             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white animate-pulse" />

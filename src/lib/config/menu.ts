@@ -43,7 +43,7 @@ export const MENU_ITEMS: MenuItem[] = [
         submenu: [
             { title: 'Active Properties', href: '/properties/all' },
             { title: 'Add New Property', href: '/properties/new' },
-            { title: 'Draft Properties', href: '/properties/draft' },
+            { title: 'Saved Drafts', href: '/properties/saved-drafts' },
             { title: 'From Agents', href: '/properties/agents', underDevelopment: true },
             { title: 'Unpublished', href: '/properties/unpublished' },
             { title: 'Rejected Properties', href: '/properties/rejected' },
@@ -72,9 +72,9 @@ export const MENU_ITEMS: MenuItem[] = [
         href: '/leads',
         permission: 'Leads',
         submenu: [
+            { title: 'Leads Dashboard', href: '/leads/3rd-party' },
             { title: 'Add Lead', href: '/leads/new' },
             { title: 'Website Leads', href: '/leads/website', underDevelopment: true },
-            { title: '3rd Party Leads', href: '/leads/3rd-party' },
             { title: 'Property Finder', href: '/leads/property-finder' },
         ],
     },

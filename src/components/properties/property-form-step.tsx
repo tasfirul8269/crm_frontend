@@ -15,7 +15,7 @@ import { SubmissionOverlay } from '@/components/ui/submission-overlay';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCreateProperty, useUpdateProperty } from '@/hooks/use-properties';
-import { CreatePropertyData } from '@/services/property.service';
+import { CreatePropertyData, saveDraft, deleteDraft } from '@/services/property.service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -25,6 +25,7 @@ interface PropertyFormStepProps {
     purpose: string;
     initialData?: any;
     onBack: () => void;
+    draftId?: string;
 }
 
 // Define a type for form values if not already defined
@@ -80,7 +81,7 @@ const TABS = [
     { id: 'agent', label: 'Agent' },
 ];
 
-export function PropertyFormStep({ nocFile: initialNocFile, category: initialCategory, purpose: initialPurpose, initialData, onBack }: PropertyFormStepProps) {
+export function PropertyFormStep({ nocFile: initialNocFile, category: initialCategory, purpose: initialPurpose, initialData, onBack, draftId }: PropertyFormStepProps) {
     // Determine initial values
     const category = initialData?.category || initialCategory;
     const purpose = initialData?.purpose || initialPurpose;
@@ -93,11 +94,14 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
 
     const createPropertyMutation = useCreateProperty();
     const updatePropertyMutation = useUpdateProperty();
-    const isEditing = !!initialData;
+    // Only consider it "Editing" a Live Property if it has an ID. 
+    // If it's a draft of a new property, initialData exists but has no ID (or we strip it).
+    const isEditing = !!initialData?.id;
 
     const cancelClickedRef = React.useRef(false);
     const hasUnsavedChangesRef = React.useRef(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState('Processing...');
     const router = useRouter();
 
     const {
@@ -257,22 +261,93 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
                 propertyData.mediaImages = data.mediaImages.filter((f: any) => f instanceof File);
             }
 
+            // Check if action was 'draft'
+            if ((window as any)._submitAction === 'draft') {
+                // We save as draft. 
+                // Pass draftId if we are editing an existing draft to update it.
+                // If we are editing a live property (isEditing=true), we pass initialData.id as originalPropertyId.
+                const payload = draftId ? { ...propertyData, id: draftId } : propertyData;
+                await saveDraft(payload, isEditing ? initialData.id : undefined);
+                toast.success('Draft saved successfully!');
+                (window as any)._submitAction = null;
+                return;
+            }
+
+            let savedPropertyId = initialData?.id;
+
             if (isEditing) {
                 await updatePropertyMutation.mutateAsync({ id: initialData.id, data: propertyData });
                 toast.success('Property updated successfully!');
             } else {
-                await createPropertyMutation.mutateAsync(propertyData);
+                const result = await createPropertyMutation.mutateAsync(propertyData);
+                savedPropertyId = result.id;
                 toast.success('Property created successfully!');
             }
+
+            // If we successfully saved to main table, and we came from a draft (draftId exists), delete the draft.
+            if (draftId) {
+                try {
+                    await deleteDraft(draftId);
+                } catch (e) {
+                    console.error('Failed to delete draft after publish', e);
+                }
+            }
+
+            // check if action was 'publish' (Update to PF)
+            if ((window as any)._submitAction === 'publish' && savedPropertyId) {
+                toast.info('Syncing to Property Finder...');
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+
+                try {
+                    // Trigger Sync
+                    await import('axios').then(axios => axios.default.post(`${backendUrl}/properties/${savedPropertyId}/sync-to-pf`));
+                    toast.success('Successfully synced to Property Finder!');
+                } catch (syncError: any) {
+                    console.error('Manual PF Sync Failed', syncError);
+                    // Extract the actual error message from PF API response
+                    const errorData = syncError?.response?.data;
+                    let errorMessage = 'Property Saved, but failed to sync to Property Finder.';
+                    if (errorData) {
+                        // Try to extract meaningful error message
+                        if (typeof errorData === 'string') {
+                            errorMessage = errorData;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                            errorMessage = errorData.errors.map((e: any) => e.message || e.field || JSON.stringify(e)).join(', ');
+                        } else if (errorData.error) {
+                            errorMessage = errorData.error;
+                        } else {
+                            errorMessage = JSON.stringify(errorData);
+                        }
+                    }
+                    console.error('PF Error Details:', errorData);
+                    toast.error(`PF Sync Failed: ${errorMessage}`);
+                }
+            }
+
+            // Reset action
+            (window as any)._submitAction = null;
+
         } catch (error) {
-            console.error('Failed to create property:', error);
-            toast.error('Failed to create property. Please try again.');
+            console.error('Failed to create/update property:', error);
+            // toast.error('Failed to create property. Please try again.'); // Mutation hook might handle this, or keep it.
+            // Duplicate toast if mutation has it. Keeping safe.
+            toast.error('Failed to save property.');
             throw error; // Re-throw to be caught by handleFormSubmit
         }
     };
 
     const handleFormSubmit = async (data: PropertyFormValues) => {
-        console.log('✅ Form validation passed! Publishing with data:', data);
+        console.log('✅ Form validation passed! Submitting with data:', data);
+        const action = (window as any)._submitAction;
+        if (action === 'draft') {
+            setSubmitMessage('Saving Draft...');
+        } else if (action === 'publish') {
+            setSubmitMessage(isEditing ? 'Updating to PF...' : 'Publishing to PF...');
+        } else {
+            setSubmitMessage('Processing...');
+        }
         setIsSubmitting(true);
         try {
             cancelClickedRef.current = true; // Prevent auto-save
@@ -423,25 +498,29 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
                                 <Button
                                     type="submit"
                                     onClick={() => {
-                                        setValue('isActive', true, { shouldDirty: true });
-                                        setValue('pfPublished', false, { shouldDirty: true });
+                                        (window as any)._submitAction = 'draft';
                                     }}
                                     disabled={createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting}
                                     variant="outline"
                                     className="px-8 py-3 border border-[#E0F2FE] text-[#0BA5EC] hover:bg-[#E0F2FE] hover:text-[#0BA5EC] rounded-xl font-medium transition-colors h-auto disabled:opacity-50"
                                 >
-                                    {(createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting) ? (isEditing ? 'Saving...' : 'Saving...') : (isEditing ? 'Save Changes' : 'Save')}
+                                    {(createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting) ? 'Saving Draft...' : 'Save as Draft'}
                                 </Button>
                                 <Button
                                     type="submit"
                                     onClick={() => {
                                         setValue('isActive', true, { shouldDirty: true });
+                                        // We set pfPublished to true to indicate intent, but strictly we handle the API call manually now
                                         setValue('pfPublished', true, { shouldDirty: true });
+                                        // We'll use a flag or reference to know we need to trigger sync after save
+                                        // Since handleFormSubmit is async, we can't easily pass arguments from here to it via handleSubmit
+                                        // But we can use a ref.
+                                        (window as any)._submitAction = 'publish';
                                     }}
                                     disabled={createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting}
                                     className="px-10 py-3 bg-[#00AAFF] text-white hover:bg-[#0090dd] rounded-xl font-medium transition-colors flex items-center gap-2 h-auto disabled:opacity-50"
                                 >
-                                    {(createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting) ? 'Publishing...' : 'Publish to Property Finder'}
+                                    {(createPropertyMutation.isPending || updatePropertyMutation.isPending || isSubmitting) ? (isEditing ? 'Updating...' : 'Publishing...') : (isEditing ? 'Update to PF' : 'Publish to PF')}
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
@@ -464,7 +543,7 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
                     </div>
                 </div>
             </div>
-            <SubmissionOverlay isOpen={isSubmitting} message="Publishing Property..." />
+            <SubmissionOverlay isOpen={isSubmitting} message={submitMessage} />
         </form>
     );
 }

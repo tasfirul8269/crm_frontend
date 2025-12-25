@@ -139,15 +139,10 @@ export function Sidebar() {
                             if (item.submenu) {
                                 return (
                                     <div key={item.title}>
-                                        <Link
-                                            href={item.submenu[0]?.href || '#'}
-                                            onClick={() => {
-                                                if (expandedMenu !== item.title) {
-                                                    setExpandedMenu(item.title);
-                                                }
-                                            }}
+                                        <div
+                                            onClick={() => toggleMenu(item.title)}
                                             className={cn(
-                                                "group flex w-full items-center justify-between rounded-xl px-3 py-3 text-[15px] font-medium transition-all",
+                                                "group flex w-full items-center justify-between rounded-xl px-3 py-3 text-[15px] font-medium transition-all cursor-pointer",
                                                 isParentActive
                                                     ? "bg-[#00AAFF] text-white shadow-sm"
                                                     : "text-[#727C90] hover:bg-gray-50"
@@ -158,11 +153,6 @@ export function Sidebar() {
                                                 <span>{item.title}</span>
                                             </div>
                                             <div
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    toggleMenu(item.title);
-                                                }}
                                                 className="p-1 hover:bg-white/10 rounded-full transition-colors"
                                             >
                                                 <ChevronDown
@@ -173,7 +163,7 @@ export function Sidebar() {
                                                     )}
                                                 />
                                             </div>
-                                        </Link>
+                                        </div>
 
                                         {/* Submenu with hierarchy lines */}
                                         {isExpanded && (
