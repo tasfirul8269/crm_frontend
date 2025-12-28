@@ -76,8 +76,13 @@ export function useInfiniteProperties(
         };
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    // Flatten properties from all pages
-    const properties = data?.pages.flatMap((page) => page.data) || [];
+    // Flatten properties from all pages and deduplicate by ID to prevent React key errors
+    const allProperties = data?.pages.flatMap((page) => page.data) || [];
+    const properties = React.useMemo(() => {
+        const uniqueMap = new Map();
+        allProperties.forEach(p => uniqueMap.set(p.id, p));
+        return Array.from(uniqueMap.values());
+    }, [data?.pages]);
     const totalCount = data?.pages[0]?.meta?.total || 0;
 
     return {

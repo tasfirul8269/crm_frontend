@@ -18,6 +18,7 @@ import { useCreateProperty, useUpdateProperty } from '@/hooks/use-properties';
 import { CreatePropertyData, saveDraft, deleteDraft } from '@/services/property.service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { NocData } from '@/components/noc/create-noc-page-content';
 
 interface PropertyFormStepProps {
     nocFile: File | null;
@@ -26,6 +27,7 @@ interface PropertyFormStepProps {
     initialData?: any;
     onBack: () => void;
     draftId?: string;
+    nocData?: NocData | null;
 }
 
 // Define a type for form values if not already defined
@@ -81,7 +83,7 @@ const TABS = [
     { id: 'agent', label: 'Agent' },
 ];
 
-export function PropertyFormStep({ nocFile: initialNocFile, category: initialCategory, purpose: initialPurpose, initialData, onBack, draftId }: PropertyFormStepProps) {
+export function PropertyFormStep({ nocFile: initialNocFile, category: initialCategory, purpose: initialPurpose, initialData, onBack, draftId, nocData }: PropertyFormStepProps) {
     // Determine initial values
     const category = initialData?.category || initialCategory;
     const purpose = initialData?.purpose || initialPurpose;
@@ -219,6 +221,55 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
             setTitleDeedFile(initialData.titleDeed || null);
         }
     }, [initialData, reset]);
+
+    // Auto-fill form fields from NOC data
+    useEffect(() => {
+        if (nocData) {
+            // Client name from NOC owner
+            if (nocData.clientName) {
+                setValue('clientName', nocData.clientName);
+            }
+            // Phone from NOC owner
+            if (nocData.clientPhone) {
+                setValue('phoneNumber', nocData.clientPhone);
+            }
+            if (nocData.clientCountryCode) {
+                setValue('phoneCountry', nocData.clientCountryCode);
+            }
+            // Property type
+            if (nocData.propertyType) {
+                setValue('propertyType', nocData.propertyType);
+            }
+            // Area from build up area
+            if (nocData.buildUpArea) {
+                setValue('area', parseFloat(nocData.buildUpArea));
+            }
+            // Plot area
+            if (nocData.plotArea) {
+                setValue('plotArea', parseFloat(nocData.plotArea));
+            }
+            // Bedrooms
+            if (nocData.bedrooms) {
+                setValue('bedrooms', parseInt(nocData.bedrooms));
+            }
+            // Bathrooms
+            if (nocData.bathrooms) {
+                setValue('bathrooms', parseInt(nocData.bathrooms));
+            }
+            // Community to address
+            if (nocData.community) {
+                setValue('address', nocData.community + (nocData.streetName ? ', ' + nocData.streetName : ''));
+            }
+            // Rental amount as price if purpose is rent
+            if (nocData.rentalAmount && purpose === 'rent') {
+                setValue('price', parseFloat(nocData.rentalAmount));
+            }
+            // Sale amount as price if purpose is sell
+            if (nocData.saleAmount && purpose === 'sell') {
+                setValue('price', parseFloat(nocData.saleAmount));
+            }
+        }
+    }, [nocData, setValue, purpose]);
 
     console.log('PropertyFormStep initialData:', {
         id: initialData?.id,
@@ -452,6 +503,10 @@ export function PropertyFormStep({ nocFile: initialNocFile, category: initialCat
                         <GeneralDetailsTab
                             register={register}
                             errors={errors}
+                            setValue={setValue}
+                            watch={watch}
+                            purpose={purpose}
+                            category={category}
                         />
                     )}
                     {activeTab === 'media' && (

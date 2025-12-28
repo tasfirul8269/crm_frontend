@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { CategorySelectionStep } from '@/components/properties/category-selection-step';
 import { Loader2 } from 'lucide-react';
+import { CreateNocPageContent, NocData } from '@/components/noc/create-noc-page-content';
 
 // Loading component for dynamic chunks
 const StepLoader = () => (
@@ -34,6 +35,8 @@ export default function AddPropertyPage() {
     const [selectedCategory, setSelectedCategory] = useState<'residential' | 'commercial' | ''>('');
     const [selectedPurpose, setSelectedPurpose] = useState<'sell' | 'rent' | ''>('');
     const [nocFile, setNocFile] = useState<File | null>(null);
+    const [showCreateNoc, setShowCreateNoc] = useState(false);
+    const [createdNocData, setCreatedNocData] = useState<NocData | null>(null);
 
     const handleCategorySelect = (category: 'residential' | 'commercial') => {
         setSelectedCategory(category);
@@ -60,6 +63,50 @@ export default function AddPropertyPage() {
             router.back();
         }
     };
+
+    const handleCreateNocClick = () => {
+        setShowCreateNoc(true);
+    };
+
+    const handleNocCreated = async (nocData: NocData) => {
+        setCreatedNocData(nocData);
+        setShowCreateNoc(false);
+
+        // Create a file object from the PDF URL
+        if (nocData.pdfUrl) {
+            try {
+                const response = await fetch(nocData.pdfUrl);
+                const blob = await response.blob();
+                const nocFile = new File([blob], `noc-${nocData.id}.pdf`, { type: 'application/pdf' });
+                setNocFile(nocFile);
+                // Directly go to property form step after NOC creation
+                setCurrentStep(3);
+            } catch (error) {
+                console.error('Error fetching created NOC PDF:', error);
+                // Create a dummy file as fallback
+                const dummyBlob = new Blob(['NOC PDF'], { type: 'application/pdf' });
+                const nocFileObj = new File([dummyBlob], `noc-${nocData.id}.pdf`, { type: 'application/pdf' });
+                setNocFile(nocFileObj);
+                setCurrentStep(3);
+            }
+        }
+    };
+
+    const handleBackFromCreateNoc = () => {
+        setShowCreateNoc(false);
+    };
+
+    // If showing Create NOC page (full screen)
+    if (showCreateNoc) {
+        return (
+            <div className="h-full">
+                <CreateNocPageContent
+                    onNocCreated={handleNocCreated}
+                    onBack={handleBackFromCreateNoc}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className={`h-full p-8 ${currentStep === 3 ? '' : 'flex items-center justify-center'}`}>
@@ -88,6 +135,8 @@ export default function AddPropertyPage() {
                         onFileChange={setNocFile}
                         onNext={handleNext}
                         onBack={handleBack}
+                        onCreateNocClick={handleCreateNocClick}
+                        createdNocPdfUrl={createdNocData?.pdfUrl}
                     />
                 )}
 
@@ -97,6 +146,7 @@ export default function AddPropertyPage() {
                         category={selectedCategory}
                         purpose={selectedPurpose}
                         onBack={handleBack}
+                        nocData={createdNocData}
                     />
                 )}
             </div>

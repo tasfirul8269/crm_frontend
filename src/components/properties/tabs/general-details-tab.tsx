@@ -1,24 +1,158 @@
 'use client';
 
-import React from 'react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import React, { useState } from 'react';
+import { UseFormRegister, FieldErrors, UseFormSetValue, UseFormWatch } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface GeneralDetailsTabProps {
     register: UseFormRegister<any>;
     errors: FieldErrors<any>;
+    setValue: UseFormSetValue<any>;
+    watch: UseFormWatch<any>;
+    purpose?: string;
+    category?: string;
 }
 
-export function GeneralDetailsTab({ register, errors }: GeneralDetailsTabProps) {
+export function GeneralDetailsTab({ register, errors, setValue, watch, purpose, category }: GeneralDetailsTabProps) {
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+
+    const handleGenerateTitle = async () => {
+        setIsGeneratingTitle(true);
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+
+            // Collect property details from form
+            const propertyDetails = {
+                propertyType: watch('propertyType'),
+                bedrooms: watch('bedrooms'),
+                bathrooms: watch('bathrooms'),
+                area: watch('area'),
+                plotArea: watch('plotArea'),
+                address: watch('address'),
+                emirate: watch('emirate'),
+                furnishingType: watch('furnishingType'),
+                amenities: watch('amenities'),
+                price: watch('price'),
+                purpose: purpose,
+                category: category,
+            };
+
+            // Check if we have minimum required data
+            if (!propertyDetails.propertyType && !propertyDetails.bedrooms && !propertyDetails.address) {
+                toast.error('Please fill in some property details first (property type, bedrooms, or location)');
+                setIsGeneratingTitle(false);
+                return;
+            }
+
+            const response = await fetch(`${backendUrl}/ai/generate-title`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(propertyDetails),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to generate title');
+            }
+
+            const result = await response.json();
+
+            if (result.title) {
+                setValue('propertyTitle', result.title);
+                toast.success('AI title generated successfully!');
+            }
+        } catch (error: any) {
+            console.error('Error generating title:', error);
+            toast.error(error.message || 'Failed to generate title. Please try again.');
+        } finally {
+            setIsGeneratingTitle(false);
+        }
+    };
+
+    const handleGenerateDescription = async () => {
+        setIsGenerating(true);
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+
+            // Collect property details from form
+            const propertyDetails = {
+                propertyType: watch('propertyType'),
+                bedrooms: watch('bedrooms'),
+                bathrooms: watch('bathrooms'),
+                area: watch('area'),
+                plotArea: watch('plotArea'),
+                address: watch('address'), // Google Maps location
+                emirate: watch('emirate'),
+                furnishingType: watch('furnishingType'),
+                amenities: watch('amenities'),
+                price: watch('price'),
+                purpose: purpose,
+                category: category,
+            };
+
+            // Check if we have minimum required data
+            if (!propertyDetails.propertyType && !propertyDetails.bedrooms && !propertyDetails.address) {
+                toast.error('Please fill in some property details first (property type, bedrooms, or location)');
+                setIsGenerating(false);
+                return;
+            }
+
+            const response = await fetch(`${backendUrl}/ai/generate-description`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(propertyDetails),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to generate description');
+            }
+
+            const result = await response.json();
+
+            if (result.description) {
+                setValue('propertyDescription', result.description);
+                toast.success('AI description generated successfully!');
+            }
+        } catch (error: any) {
+            console.error('Error generating description:', error);
+            toast.error(error.message || 'Failed to generate description. Please try again.');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-3xl">
             {/* Property Title */}
             <div className="space-y-2.5">
-                <Label htmlFor="propertyTitle" className="text-[15px] font-medium text-gray-700">
+                <Label htmlFor="propertyTitle" className="text-[15px] font-medium text-gray-700 flex items-center gap-2">
                     Property title <span className="text-red-500">*</span>
+                    <button
+                        type="button"
+                        onClick={handleGenerateTitle}
+                        disabled={isGeneratingTitle}
+                        className={cn(
+                            "p-1 rounded-md transition-colors",
+                            isGeneratingTitle
+                                ? "cursor-not-allowed opacity-50"
+                                : "hover:bg-blue-50 cursor-pointer"
+                        )}
+                        title="Generate AI title"
+                    >
+                        {isGeneratingTitle ? (
+                            <Loader2 className="w-4 h-4 text-[#00AAFF] animate-spin" />
+                        ) : (
+                            <Sparkles className="w-4 h-4 text-[#00AAFF]" />
+                        )}
+                    </button>
                 </Label>
                 <Input
                     id="propertyTitle"
@@ -36,7 +170,24 @@ export function GeneralDetailsTab({ register, errors }: GeneralDetailsTabProps) 
             <div className="space-y-2.5">
                 <Label htmlFor="propertyDescription" className="text-[15px] font-medium text-gray-700 flex items-center gap-2">
                     Property description <span className="text-red-500">*</span>
-                    <Sparkles className="w-4 h-4 text-[#00AAFF]" />
+                    <button
+                        type="button"
+                        onClick={handleGenerateDescription}
+                        disabled={isGenerating}
+                        className={cn(
+                            "p-1 rounded-md transition-colors",
+                            isGenerating
+                                ? "cursor-not-allowed opacity-50"
+                                : "hover:bg-blue-50 cursor-pointer"
+                        )}
+                        title="Generate AI description"
+                    >
+                        {isGenerating ? (
+                            <Loader2 className="w-4 h-4 text-[#00AAFF] animate-spin" />
+                        ) : (
+                            <Sparkles className="w-4 h-4 text-[#00AAFF]" />
+                        )}
+                    </button>
                 </Label>
                 <textarea
                     id="propertyDescription"
@@ -52,10 +203,22 @@ export function GeneralDetailsTab({ register, errors }: GeneralDetailsTabProps) 
             </div>
 
             {/* AI Suggestion */}
-            <div className="flex items-center gap-2 text-[#00AAFF] text-sm">
-                <Sparkles className="w-4 h-4" />
-                <span>Use Mateluxy AI for faster results, smarter time-saving SEO performance.</span>
-            </div>
+            <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={isGenerating}
+                className={cn(
+                    "flex items-center gap-2 text-[#00AAFF] text-sm transition-colors",
+                    isGenerating ? "opacity-50 cursor-not-allowed" : "hover:text-[#0088cc] cursor-pointer"
+                )}
+            >
+                {isGenerating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                    <Sparkles className="w-4 h-4" />
+                )}
+                <span>{isGenerating ? 'Generating...' : 'Use Mateluxy AI for faster results, smarter time-saving SEO performance.'}</span>
+            </button>
 
             {/* SEO Note */}
             <p className="text-sm text-gray-500">

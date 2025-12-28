@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { FileText, Upload, ArrowUpRight, File, X } from 'lucide-react';
+import { FileText, Upload, ArrowUpRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NocSelectionStepProps {
@@ -9,9 +9,18 @@ interface NocSelectionStepProps {
     onFileChange: (file: File | null) => void;
     onNext: () => void;
     onBack: () => void;
+    onCreateNocClick?: () => void;
+    createdNocPdfUrl?: string | null;
 }
 
-export function NocSelectionStep({ file, onFileChange, onNext, onBack }: NocSelectionStepProps) {
+export function NocSelectionStep({
+    file,
+    onFileChange,
+    onNext,
+    onBack,
+    onCreateNocClick,
+    createdNocPdfUrl
+}: NocSelectionStepProps) {
     const [uploadProgress, setUploadProgress] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +63,8 @@ export function NocSelectionStep({ file, onFileChange, onNext, onBack }: NocSele
         }
     };
 
+    const canProceed = file && uploadProgress === 100;
+
     return (
         <div className="space-y-6 max-w-xl mx-auto">
             {/* Header */}
@@ -61,7 +72,10 @@ export function NocSelectionStep({ file, onFileChange, onNext, onBack }: NocSele
 
             <div className="space-y-6">
                 {/* Create NOC Card */}
-                <button className="w-full group relative p-5 rounded-2xl border border-gray-200 bg-white hover:border-blue-500 hover:shadow-md transition-all text-left flex items-center justify-between">
+                <button
+                    onClick={onCreateNocClick}
+                    className="w-full group relative p-5 rounded-2xl border border-gray-200 bg-white hover:border-blue-500 hover:shadow-md transition-all text-left flex items-center justify-between"
+                >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
                             <FileText className="w-5 h-5 text-gray-600 group-hover:text-blue-500" />
@@ -142,6 +156,28 @@ export function NocSelectionStep({ file, onFileChange, onNext, onBack }: NocSele
                         </div>
                     </div>
                 )}
+
+                {/* Show created NOC info */}
+                {createdNocPdfUrl && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                <FileText className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-green-800">NOC Created Successfully</p>
+                                <a
+                                    href={createdNocPdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-green-600 hover:underline"
+                                >
+                                    View PDF →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Navigation Buttons */}
@@ -157,10 +193,10 @@ export function NocSelectionStep({ file, onFileChange, onNext, onBack }: NocSele
                 </button>
                 <button
                     onClick={onNext}
-                    disabled={!file || uploadProgress < 100}
-                    className={`px-8 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${file && uploadProgress === 100
-                            ? 'bg-[#E0F2FE] text-[#0BA5EC] hover:bg-[#BAE6FD]'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    disabled={!canProceed}
+                    className={`px-8 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${canProceed
+                        ? 'bg-[#E0F2FE] text-[#0BA5EC] hover:bg-[#BAE6FD]'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     Next

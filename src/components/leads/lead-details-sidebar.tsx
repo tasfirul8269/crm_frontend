@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, User, Mail, Phone, Copy, ChevronDown, Facebook, Instagram, Hash } from 'lucide-react'; // Hash for Adsense/TikTok potentially or just generic
+import { X, User, Mail, Phone, Copy, ChevronDown, Facebook, Instagram, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { AllAgentsModal } from '../off-plan-properties/modals/all-agents-modal';
+import { agentService, Agent } from '@/lib/services/agent.service';
+import { LeadService } from '@/lib/services/lead.service';
+import { toast } from 'sonner';
 
 // Define Lead interface locally if not available globally, or import it. 
 // Based on typical usage and reference.
@@ -21,6 +25,15 @@ export interface LeadDetails {
     dealPrice?: number;
     closingDate?: string | Date;
     additionalContent?: string;
+    district?: string;
+    propertyType?: string;
+    budgetFrom?: number;
+    budgetTo?: number;
+    bedrooms?: number;
+    areaFrom?: number;
+    areaTo?: number;
+    currency?: string;
+    observers?: string[];
 
     // For the header agent info
     responsibleAgent?: {
@@ -29,6 +42,7 @@ export interface LeadDetails {
         photoUrl?: string;
         score?: number;
     };
+    responsibleAgentId?: string;
 }
 
 interface LeadDetailsSidebarProps {
@@ -48,15 +62,46 @@ export function LeadDetailsSidebar({ lead, onClose }: LeadDetailsSidebarProps) {
     if (!lead) return null;
 
     const [isWishesOpen, setIsWishesOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
     // Mock responsible agent data if missing (as per design image which shows a specific agent)
     // In real app, this should come from lead.responsibleAgent relation
     // Use lead's responsible agent data or fallback to mock if completely missing
     const agent = {
         name: lead.responsibleAgent?.name || lead.responsible || 'William Yong',
-        role: lead.responsibleAgent ? 'Sales Agent' : 'CEO | Sales', // Simple fallback role logic
+        role: lead.responsibleAgent ? (lead.responsibleAgent.position || 'Sales Agent') : 'Sales Agent',
         photoUrl: lead.responsibleAgent?.photoUrl || '/profile.svg',
         score: lead.responsibleAgent?.score || 143
+    };
+
+    const handleTransferClick = async () => {
+        setIsTransferModalOpen(true);
+        if (agents.length === 0) {
+            setIsLoadingAgents(true);
+            try {
+                const fetchedAgents = await agentService.getAll();
+                setAgents(fetchedAgents);
+            } catch (error) {
+                toast.error('Failed to load agents list');
+            } finally {
+                setIsLoadingAgents(false);
+            }
+        }
+    };
+
+    const handleAgentSelect = async (selectedAgent: Agent) => {
+        try {
+            await LeadService.transferLead(lead.id, selectedAgent.id);
+            toast.success(`Lead transferred to ${selectedAgent.name}`);
+            setIsTransferModalOpen(false);
+            // Close the sidebar to refresh the list or optionally trigger a refresh callback if provided prop
+            onClose();
+        } catch (error) {
+            console.error('Transfer failed', error);
+            toast.error('Failed to transfer lead');
+        }
     };
 
     return (
@@ -92,7 +137,10 @@ export function LeadDetailsSidebar({ lead, onClose }: LeadDetailsSidebarProps) {
                             <h2 className="text-[20px] font-semibold text-[#1F2837] leading-tight">
                                 {agent.name}
                             </h2>
-                            <button className="text-[#2196F3] text-sm font-medium flex items-center gap-1 hover:underline">
+                            <button
+                                onClick={handleTransferClick}
+                                className="text-[#2196F3] text-sm font-medium flex items-center gap-1 hover:underline transition-all"
+                            >
                                 <span>⇄</span> Transfer
                             </button>
                         </div>
@@ -118,7 +166,13 @@ export function LeadDetailsSidebar({ lead, onClose }: LeadDetailsSidebarProps) {
                             <div className="text-[15px] text-[#1F2837] flex items-center flex-1">
                                 <span className="text-[#8F9BB3] font-normal mr-2">Email :</span>
                                 <span className="font-semibold truncate max-w-[200px]">{lead.email}</span>
-                                <Copy className="w-4 h-4 text-[#2196F3] ml-2 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity" />
+                                <Copy
+                                    className="w-4 h-4 text-[#2196F3] ml-2 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(lead.email);
+                                        toast.success("Email copied to clipboard");
+                                    }}
+                                />
                             </div>
                         </div>
 
@@ -188,9 +242,10 @@ export function LeadDetailsSidebar({ lead, onClose }: LeadDetailsSidebarProps) {
                     <h3 className="text-[#8F9BB3] text-[16px] font-semibold mb-4">Lead Source</h3>
                     <div className="flex items-center gap-2">
                         {/* Source Icon logic */}
-                        {lead.source === 'Facebook' && <div className="bg-[#1877F2] p-1 rounded-full"><Facebook className="w-3 h-3 text-white fill-white" /></div>}
+                        {lead.source?.toLowerCase().includes('facebook') && <div className="bg-[#1877F2] p-1 rounded-full"><Facebook className="w-3 h-3 text-white fill-white" /></div>}
+                        {lead.source?.toLowerCase().includes('instagram') && <div className="bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-1 rounded-full"><Instagram className="w-3 h-3 text-white" /></div>}
                         {/* Fallback */}
-                        {!lead.source?.includes('Facebook') && <div className="w-5 h-5 bg-gray-200 rounded-full" />}
+                        {!lead.source?.toLowerCase().includes('facebook') && !lead.source?.toLowerCase().includes('instagram') && <div className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center"><Hash className="w-3 h-3 text-gray-500" /></div>}
 
                         <span className="text-[16px] font-medium text-[#1F2837]">{lead.source || 'Unknown'}</span>
                     </div>
@@ -232,11 +287,21 @@ export function LeadDetailsSidebar({ lead, onClose }: LeadDetailsSidebarProps) {
                 <div className="mb-8">
                     <h3 className="text-[#8F9BB3] text-[16px] font-semibold mb-3">Additional content</h3>
                     <p className="text-[#8F9BB3] text-[14px] leading-relaxed">
-                        {lead.additionalContent || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.Lorem ipsum dolor sit amet, consectetur'}
+                        {lead.additionalContent || 'No additional content provided.'}
                     </p>
                 </div>
 
             </div>
+
+            {/* Transfer Agent Modal */}
+            <AllAgentsModal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                agents={agents}
+                selectedAgentIds={lead.responsibleAgentId ? [lead.responsibleAgentId] : []}
+                onSelectAgent={handleAgentSelect}
+                view="area"
+            />
         </div>
     );
 }

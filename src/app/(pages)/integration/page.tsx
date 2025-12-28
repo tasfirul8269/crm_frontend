@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Lock, Loader2, Clock, Globe } from 'lucide-react';
 import { updateSystemSettings } from '@/services/integration.service';
 import { toast } from 'sonner';
+import { AiTrainingSection } from '@/components/integrations/ai-training-section';
 
 function SystemSettingsCard({ currentTimeZone }: { currentTimeZone: string }) {
     const queryClient = useQueryClient();
@@ -97,26 +98,28 @@ const availableIntegrations = [
         fields: [
             { key: 'apiKey', label: 'API Key', type: 'text', placeholder: 'Enter your API key' },
             { key: 'apiSecret', label: 'Secret Key', type: 'password', placeholder: 'Enter your secret key' },
-            { key: 'companyOrn', label: 'Company ORN (License Number)', type: 'text', placeholder: 'Enter your company ORN/license number' }
+            { key: 'companyOrn', label: 'Company License Number', type: 'text', placeholder: 'Enter your company license number' }
         ]
     },
     {
-        key: 'meta',
-        name: 'Facebook', // Renamed from Meta as per icon request
-        description: 'Capture and track leads from Facebook & Instagram campaigns seamlessly.',
-        icon: '/facebook_icon.svg',
+        key: 'google_maps',
+        name: 'Google Maps',
+        description: 'Enable location services, maps, and geocoding for property addresses.',
+        icon: '/google_maps_icon.svg',
         fields: [
-            { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Enter Access Token' },
-            { key: 'pixelId', label: 'Pixel ID', type: 'text', placeholder: 'Enter Pixel ID' }
+            { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Enter your Google Maps API Key' }
         ]
     },
     {
-        key: 'tiktok_ads',
-        name: 'TikTok Ads',
-        description: 'Run engaging ad campaigns to generate real estate leads from TikTok.',
-        icon: '/tiktok_icon.svg',
+        key: 'amazon_aws',
+        name: 'Amazon AWS',
+        description: 'Store and manage media files using Amazon S3 cloud storage.',
+        icon: '/aws_icon.svg',
         fields: [
-            { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Enter Access Token' }
+            { key: 'accessKeyId', label: 'Access Key ID', type: 'password', placeholder: 'Enter AWS Access Key ID' },
+            { key: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: 'Enter AWS Secret Access Key' },
+            { key: 'bucketName', label: 'Bucket Name', type: 'text', placeholder: 'Enter S3 Bucket Name' },
+            { key: 'region', label: 'Region', type: 'text', placeholder: 'e.g., us-east-1' }
         ]
     },
 
@@ -252,6 +255,7 @@ export default function IntegrationsPage() {
                 <SystemSettingsCard
                     currentTimeZone={configs?.find((c: any) => c.provider === 'system_settings')?.credentials?.timeZone || 'UTC'}
                 />
+                <AiTrainingSection />
             </div>
 
             <div>
