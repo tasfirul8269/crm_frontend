@@ -27,8 +27,8 @@ export const useLogin = () => {
             // Set a cookie on the frontend domain so middleware can detect auth
             // Cookies from backend domain aren't visible to Next.js middleware
             const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-            const cookieOptions = isProduction 
-                ? 'path=/; max-age=604800; secure; samesite=none' 
+            const cookieOptions = isProduction
+                ? 'path=/; max-age=604800; secure; samesite=lax'
                 : 'path=/; max-age=604800; samesite=lax';
             document.cookie = `isAuthenticated=true; ${cookieOptions}`;
             // Use window.location.href for full page reload to ensure cookies are sent
