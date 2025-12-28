@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CountryCodeSelect } from '@/components/ui/country-code-select';
 import { toast } from 'sonner';
+import { CountryCode } from 'libphonenumber-js';
 
 interface Owner {
     name: string;
     emiratesId: string;
     issueDate: string;
     expiryDate: string;
-    countryCode: string;
+    countryCode: CountryCode;
     phone: string;
     signature: File | null;
     signatureDate: string;
@@ -82,7 +83,7 @@ const PROPERTY_TYPES = [
 ];
 
 const initialFormData: NocFormData = {
-    owners: [{ name: '', emiratesId: '', issueDate: '', expiryDate: '', countryCode: 'AE', phone: '', signature: null, signatureDate: '' }],
+    owners: [{ name: '', emiratesId: '', issueDate: '', expiryDate: '', countryCode: 'AE' as CountryCode, phone: '', signature: null, signatureDate: '' }],
     propertyType: '',
     buildingProjectName: '',
     community: '',
@@ -127,7 +128,7 @@ export function CreateNocPageContent({ onNocCreated, onBack }: CreateNocPageCont
     const addOwner = () => {
         setFormData({
             ...formData,
-            owners: [...formData.owners, { name: '', emiratesId: '', issueDate: '', expiryDate: '', countryCode: 'AE', phone: '', signature: null, signatureDate: '' }],
+            owners: [...formData.owners, { name: '', emiratesId: '', issueDate: '', expiryDate: '', countryCode: 'AE' as CountryCode, phone: '', signature: null, signatureDate: '' }],
         });
     };
 
