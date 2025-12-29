@@ -6,6 +6,7 @@ export interface PinnedNavItem {
     title: string;
     href: string;
     iconKey: string; // Key to look up icon from ICON_MAP
+    submenu?: { title: string; href: string; underDevelopment?: boolean }[];
 }
 
 interface BottomNavState {

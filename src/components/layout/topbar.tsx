@@ -21,6 +21,7 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import { NotificationsDropdown } from './notifications-dropdown';
+import { CreateNocModal } from './create-noc-modal';
 
 export function Topbar() {
     const { data: user } = useMe();
@@ -31,6 +32,7 @@ export function Topbar() {
     const [showUnderDevDialog, setShowUnderDevDialog] = useState(false);
     const [selectedFeature, setSelectedFeature] = useState<string>('');
     const [isRapidToolsOpen, setIsRapidToolsOpen] = useState(false);
+    const [showCreateNocModal, setShowCreateNocModal] = useState(false);
 
     const handleUnderDevClick = (title: string, e?: React.MouseEvent) => {
         if (e) e.preventDefault();
@@ -145,7 +147,10 @@ export function Topbar() {
                             </button>
 
                             <button
-                                onClick={() => handleUnderDevClick('NOC Generator')}
+                                onClick={() => {
+                                    setIsRapidToolsOpen(false);
+                                    setShowCreateNocModal(true);
+                                }}
                                 className="w-full flex items-center gap-3 py-2 px-1 rounded-md hover:bg-gray-50 transition-colors text-left"
                             >
                                 <img src="/svg/create_noc_icon.svg" alt="" className="h-4 w-4 opacity-70" />
@@ -257,6 +262,12 @@ export function Topbar() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Create NOC Modal */}
+            <CreateNocModal
+                open={showCreateNocModal}
+                onOpenChange={setShowCreateNocModal}
+            />
         </header>
     );
 }

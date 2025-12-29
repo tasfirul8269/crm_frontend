@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { CategorySelectionStep } from '@/components/properties/category-selection-step';
 import { Loader2 } from 'lucide-react';
@@ -31,12 +31,26 @@ const PropertyFormStep = dynamic(
 
 export default function AddPropertyPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [currentStep, setCurrentStep] = useState(0);
     const [selectedCategory, setSelectedCategory] = useState<'residential' | 'commercial' | ''>('');
     const [selectedPurpose, setSelectedPurpose] = useState<'sell' | 'rent' | ''>('');
     const [nocFile, setNocFile] = useState<File | null>(null);
     const [showCreateNoc, setShowCreateNoc] = useState(false);
     const [createdNocData, setCreatedNocData] = useState<NocData | null>(null);
+
+    // Check for URL parameters to directly start NOC creation
+    useEffect(() => {
+        const category = searchParams.get('category') as 'residential' | 'commercial' | null;
+        const purpose = searchParams.get('purpose') as 'sell' | 'rent' | null;
+        const startNoc = searchParams.get('startNoc');
+
+        if (category && purpose && startNoc === 'true') {
+            setSelectedCategory(category);
+            setSelectedPurpose(purpose);
+            setShowCreateNoc(true);
+        }
+    }, [searchParams]);
 
     const handleCategorySelect = (category: 'residential' | 'commercial') => {
         setSelectedCategory(category);

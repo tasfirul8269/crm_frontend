@@ -71,3 +71,12 @@ export const useResetPassword = () => {
         },
     });
 };
+
+export const useUpdateMenuOrder = () => {
+    return useMutation({
+        mutationFn: async (menuOrder: string[]) => {
+            const { data } = await api.patch('/users/me/menu-order', { menuOrder });
+            return data;
+        },
+    });
+};

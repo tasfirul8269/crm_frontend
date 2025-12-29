@@ -22,6 +22,7 @@ interface DragItem {
     iconKey: string;
     href: string;
     type: 'sidebar-item' | 'pinned-item';
+    submenu?: { title: string; href: string; underDevelopment?: boolean }[];
 }
 
 interface NavDndContextValue {
@@ -87,6 +88,7 @@ export function NavDndProvider({ children }: NavDndProviderProps) {
                         title: activeItem.title,
                         href: activeItem.href,
                         iconKey: activeItem.iconKey,
+                        submenu: activeItem.submenu,
                     });
                 }
             }

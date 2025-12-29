@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Plus, X, MoreHorizontal, Save } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Plus, X, MoreHorizontal, Save, Construction, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBottomNavStore, PinnedNavItem } from '@/lib/store/bottom-nav-store';
 import { getIcon } from '@/lib/utils/icons';
@@ -16,6 +16,14 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useDroppable } from '@dnd-kit/core';
 import {
     SortableContext,
@@ -28,9 +36,14 @@ interface BottomNavProps {
     isVisible?: boolean;
 }
 
-// Sortable pinned item component
+// Sortable pinned item component with submenu support
 function SortablePinnedItem({ item, onRemove, isEditMode }: { item: PinnedNavItem; onRemove: () => void; isEditMode: boolean }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const [submenuOpen, setSubmenuOpen] = useState(false);
+    const [showUnderDevDialog, setShowUnderDevDialog] = useState(false);
+    const [selectedFeature, setSelectedFeature] = useState<string>('');
+
     const {
         attributes,
         listeners,
@@ -56,7 +69,135 @@ function SortablePinnedItem({ item, onRemove, isEditMode }: { item: PinnedNavIte
 
     const Icon = getIcon(item.iconKey);
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+    const hasSubmenu = item.submenu && item.submenu.length > 0;
 
+    const handleUnderDevClick = (title: string) => {
+        setSubmenuOpen(false);
+        setSelectedFeature(title);
+        setShowUnderDevDialog(true);
+    };
+
+    const handleSubmenuItemClick = (sub: { title: string; href: string; underDevelopment?: boolean }) => {
+        if (sub.underDevelopment) {
+            handleUnderDevClick(sub.title);
+        } else {
+            setSubmenuOpen(false);
+            router.push(sub.href);
+        }
+    };
+
+    // For items with submenu, show a popover instead of navigating
+    if (hasSubmenu) {
+        return (
+            <>
+                <div
+                    ref={setNodeRef}
+                    style={style}
+                    className={cn(
+                        "group relative flex items-center justify-center",
+                        isDragging && "opacity-50"
+                    )}
+                >
+                    <div className={cn(isEditMode && "animate-jiggle")}>
+                        <Popover open={submenuOpen} onOpenChange={setSubmenuOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    {...attributes}
+                                    {...listeners}
+                                    className={cn(
+                                        "flex items-center justify-center h-10 w-10 rounded-xl transition-all",
+                                        isActive
+                                            ? "bg-[#0aa5ff] text-white"
+                                            : "text-gray-500 hover:text-[#0aa5ff] hover:bg-[#f0f7ff]"
+                                    )}
+                                    onClick={(e) => {
+                                        if (isEditMode) {
+                                            e.preventDefault();
+                                        } else {
+                                            setSubmenuOpen(!submenuOpen);
+                                        }
+                                    }}
+                                >
+                                    <Icon className="h-5 w-5" />
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                className="w-56 p-2 bg-white shadow-xl border border-gray-100 rounded-xl"
+                                align="center"
+                                side="top"
+                                sideOffset={12}
+                            >
+                                <div className="mb-2 px-2">
+                                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    {item.submenu?.map((sub) => (
+                                        <button
+                                            key={sub.href}
+                                            onClick={() => handleSubmenuItemClick(sub)}
+                                            className={cn(
+                                                "flex items-center justify-between w-full px-3 py-2 text-left rounded-lg transition-colors",
+                                                pathname === sub.href
+                                                    ? "bg-[#0aa5ff]/10 text-[#0aa5ff]"
+                                                    : "text-gray-600 hover:bg-[#f0f7ff]"
+                                            )}
+                                        >
+                                            <span className="text-sm">{sub.title}</span>
+                                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
+                        {/* Remove button - visible only in edit mode */}
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onRemove();
+                            }}
+                            className={cn(
+                                "absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full transition-all duration-200 flex items-center justify-center z-10",
+                                isEditMode
+                                    ? "opacity-100 scale-100"
+                                    : "opacity-0 scale-0 pointer-events-none"
+                            )}
+                        >
+                            <X className="h-2.5 w-2.5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Under Development Dialog */}
+                <Dialog open={showUnderDevDialog} onOpenChange={setShowUnderDevDialog}>
+                    <DialogContent className="sm:max-w-[400px] rounded-[24px] p-8 text-center">
+                        <div className="flex flex-col items-center">
+                            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-6">
+                                <Construction className="w-10 h-10 text-amber-500" />
+                            </div>
+                            <DialogHeader className="space-y-3">
+                                <DialogTitle className="text-xl font-semibold text-gray-900">
+                                    Under Development
+                                </DialogTitle>
+                                <DialogDescription className="text-gray-500 text-[15px] leading-relaxed">
+                                    <span className="font-medium text-gray-700">{selectedFeature}</span> is currently under development and will be available soon.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Button
+                                onClick={() => setShowUnderDevDialog(false)}
+                                className="mt-6 bg-[#00AAFF] hover:bg-[#0099DD] text-white px-8 h-11 rounded-xl font-medium"
+                            >
+                                Got it
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
+    }
+
+    // Standard item without submenu
     return (
         <div
             ref={setNodeRef}
@@ -141,6 +282,9 @@ function AddMenuItem({ item, onAdd, isAlreadyPinned }: {
         >
             <Icon className="h-5 w-5 text-gray-500" />
             <span className="text-sm text-gray-700">{item.title}</span>
+            {item.submenu && (
+                <span className="ml-1 text-xs text-gray-400">(+{item.submenu.length})</span>
+            )}
             {isAlreadyPinned && (
                 <span className="ml-auto text-xs text-gray-400">Added</span>
             )}
@@ -170,12 +314,13 @@ export function BottomNav({ isVisible = true }: BottomNavProps) {
             title: item.title,
             href: item.href,
             iconKey: item.iconKey,
+            submenu: item.submenu,
         });
         setIsAddOpen(false);
     };
 
-    // Filter menu items that can be added (exclude items with submenus and under development)
-    const addableItems = MENU_ITEMS.filter(item => !item.submenu && !item.underDevelopment);
+    // Filter menu items that can be added (now includes items with submenus, excludes under development)
+    const addableItems = MENU_ITEMS.filter(item => !item.underDevelopment);
 
     if (!mounted) {
         return null;
