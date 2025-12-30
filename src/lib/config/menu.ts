@@ -28,7 +28,6 @@ export interface MenuItem {
 export const UNDER_DEVELOPMENT_ITEMS = [
     'File Manager',
     'Agent App Notifications',
-    'System Settings',
     'Password Manager'
 ];
 
@@ -85,7 +84,7 @@ export const MENU_ITEMS: MenuItem[] = [
     { title: 'File Manager', icon: FolderOpen, iconKey: 'FolderOpen', href: '/file-manager', underDevelopment: true, permission: 'File Manager' },
     { title: 'Agent App Notifications', icon: Bell, iconKey: 'Bell', href: '/notifications', underDevelopment: true, permission: 'App Notifications' },
     { title: 'Admin & Editors', icon: Lock, iconKey: 'Lock', href: '/users', permission: 'Users' },
-    { title: 'System Settings', icon: Settings, iconKey: 'Settings', href: '/settings', underDevelopment: true, permission: 'Settings' },
+    { title: 'System Settings', icon: Settings, iconKey: 'Settings', href: '/settings', permission: 'Settings' },
     { title: 'Password Manager', icon: Lock, iconKey: 'Lock', href: '/passwords', underDevelopment: true, permission: 'Password Manager' },
 ];
 

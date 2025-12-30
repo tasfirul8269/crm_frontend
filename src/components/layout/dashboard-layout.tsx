@@ -5,6 +5,7 @@ import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { BottomNav } from './bottom-nav';
 import { NavDndProvider } from './nav-dnd-provider';
+import { NotificationSoundHandler } from './notification-sound-handler';
 import { useMe } from '@/lib/hooks/use-auth';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { usePathname, useRouter } from 'next/navigation';
@@ -126,6 +127,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <NavDndProvider>
             <div className="flex h-screen w-full flex-col overflow-hidden bg-gradient-to-r from-white to-[#F3FAFF]">
+                {/* Global Handlers */}
+                <NotificationSoundHandler />
+
                 {/* Topbar - Full Width */}
                 <Topbar />
 
