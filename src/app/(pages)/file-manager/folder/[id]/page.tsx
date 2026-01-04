@@ -6,6 +6,7 @@ import { fileManagerService } from '@/services/file-manager.service';
 import { ChevronLeft, Plus, MoreVertical, Upload, FolderPlus } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useFileOpener, getFileType } from '@/components/file-opener';
 
 function formatSize(bytes: number) {
     if (bytes === 0) return '0 B';
@@ -49,6 +50,7 @@ export default function FolderPage() {
     const router = useRouter();
     const folderId = params.id as string;
     const queryClient = useQueryClient();
+    const { openFile } = useFileOpener();
 
     const [activeTab, setActiveTab] = useState('All');
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -196,7 +198,11 @@ export default function FolderPage() {
                         <div
                             key={file.id}
                             className="bg-[#EEF5FA] rounded-[20px] overflow-hidden cursor-pointer hover:shadow-md transition-shadow group p-[10px]"
-                            onClick={() => window.open(file.url, '_blank')}
+                            onClick={() => openFile({
+                                url: file.url,
+                                name: file.name,
+                                type: getFileType(file.url)
+                            })}
                         >
                             {/* Thumbnail */}
                             <div className="aspect-[4/3] bg-white rounded-[12px] relative overflow-hidden">

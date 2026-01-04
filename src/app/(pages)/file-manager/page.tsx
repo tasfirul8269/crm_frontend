@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useFileOpener, getFileType } from '@/components/file-opener';
 
 // Helper Functions
 function formatSize(bytes: number) {
@@ -30,6 +31,7 @@ function getPercentage(value: number, total: number) {
 export default function FileManagerPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { openFile } = useFileOpener();
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
     const [showAllCategories, setShowAllCategories] = useState(false);
@@ -328,7 +330,11 @@ export default function FileManagerPage() {
                                 <tr
                                     key={file.id}
                                     className="group hover:bg-[#F9FAFC] transition-colors cursor-pointer border-b border-gray-50 last:border-0"
-                                    onClick={() => window.open(file.url, '_blank')}
+                                    onClick={() => openFile({
+                                        url: file.url,
+                                        name: file.name,
+                                        type: getFileType(file.url)
+                                    })}
                                 >
                                     <td className="py-4 pl-6 flex items-center gap-6">
                                         <div className="min-w-[50px] min-h-[50px] w-[50px] h-[50px] flex items-center justify-center bg-[#F9FBFF] rounded-[16px]">

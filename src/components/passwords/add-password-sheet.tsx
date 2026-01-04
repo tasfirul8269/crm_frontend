@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Save, Check } from 'lucide-react';
+import { Loader2, Save, Check, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/lib/services/user.service';
 import { createPassword, updatePassword, PasswordDetails } from '@/services/password.service';
 import { toast } from 'sonner';
+import { DocumentUploadBox } from '@/components/properties/document-upload-box';
+import api from '@/lib/api/axios';
 
 const schema = z.object({
     title: z.string().min(1, 'Title is required'),
@@ -34,6 +36,9 @@ interface AddPasswordSheetProps {
 export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswordSheetProps) {
     const queryClient = useQueryClient();
     const [selectedAccessIds, setSelectedAccessIds] = useState<string[]>([]);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
@@ -64,6 +69,7 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
                 // We show decrypted password if available (it should be since we fetched details to edit)
                 setValue('password', passwordToEdit.password);
                 setSelectedAccessIds(passwordToEdit.accessIds || []);
+                setLogoUrl(passwordToEdit.logoUrl || null);
             } else {
                 reset({
                     title: '',
@@ -72,6 +78,8 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
                     note: '',
                 });
                 setSelectedAccessIds([]);
+                setLogoUrl(null);
+                setLogoFile(null);
             }
         }
     }, [isOpen, passwordToEdit, reset, setValue]);
@@ -99,6 +107,8 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
     const handleClose = () => {
         reset();
         setSelectedAccessIds([]);
+        setLogoFile(null);
+        setLogoUrl(null);
         onClose();
     };
 
@@ -110,19 +120,48 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
         );
     };
 
-    const onSubmit = (data: FormValues) => {
+    const handleFileSelect = (file: File) => {
+        setLogoFile(file);
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setLogoUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const onSubmit = async (data: FormValues) => {
         // Enforce password required for create, optional for update (if empty)
         if (!passwordToEdit && !data.password) {
             toast.error("Password is required");
             return;
-            // Although Zod 'optional' allows undefined, we want it required for create. 
-            // However, our Zod schema makes it optional strictly. 
-            // Let's refine check: if create, enforce it.
+        }
+
+        let uploadedLogoUrl = logoUrl;
+
+        // Upload file if selected
+        if (logoFile) {
+            setIsUploading(true);
+            try {
+                const formData = new FormData();
+                formData.append('file', logoFile);
+                const res = await api.post('/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                uploadedLogoUrl = res.data.url;
+            } catch (error) {
+                toast.error("Failed to upload logo image");
+                setIsUploading(false);
+                return;
+            } finally {
+                setIsUploading(false);
+            }
         }
 
         const payload: any = {
             ...data,
             accessIds: selectedAccessIds,
+            logoUrl: uploadedLogoUrl, // Send only the key or URL
         };
 
         if (passwordToEdit && !data.password) {
@@ -135,6 +174,18 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
     return (
         <Sheet isOpen={isOpen} onClose={handleClose} title={passwordToEdit ? "Edit Password" : "Add New Password"}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">Website Logo (Optional)</Label>
+                    <DocumentUploadBox
+                        label="Drop logo here"
+                        icon={<Upload className="w-5 h-5" />}
+                        file={logoFile || (logoUrl && !logoFile ? logoUrl : null)}
+                        onFileSelect={handleFileSelect}
+                        onRemove={() => { setLogoFile(null); setLogoUrl(null); }}
+                        accept=".png,.jpg,.jpeg,.svg,.webp"
+                    />
+                </div>
+
                 <div className="space-y-2">
                     <Label htmlFor="title" className="text-sm font-semibold text-gray-700">Purpose / Title</Label>
                     <Input
@@ -219,9 +270,9 @@ export function AddPasswordSheet({ isOpen, onClose, passwordToEdit }: AddPasswor
                 <Button
                     type="submit"
                     className="w-full bg-[#00B7FF] hover:bg-[#0099DD] h-14 text-lg font-bold rounded-2xl shadow-lg shadow-blue-100 mt-4 transition-all active:scale-[0.98]"
-                    disabled={mutation.isPending}
+                    disabled={mutation.isPending || isUploading}
                 >
-                    {mutation.isPending ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
+                    {mutation.isPending || isUploading ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
                     {passwordToEdit ? 'Update Entry' : 'Create Entry'}
                 </Button>
             </form>

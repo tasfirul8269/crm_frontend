@@ -15,7 +15,9 @@ interface SelectablePropertyCardProps {
 
 export function SelectablePropertyCard({ property, onSelect, isSelected }: SelectablePropertyCardProps) {
     const queryClient = useQueryClient();
-    const score = calculatePropertyScore(property);
+    // Use real Property Finder score when available, fallback to calculated score
+    const calculatedScore = calculatePropertyScore(property);
+    const score = property.pfQualityScore ?? calculatedScore;
     const scoreColor = getScoreColor(score);
 
     const handleCardHover = () => {

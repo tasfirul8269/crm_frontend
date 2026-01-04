@@ -14,7 +14,10 @@ import {
     Gauge,
     Target,
     ChevronUp,
-    Users
+    Users,
+    Upload,
+    Globe,
+    Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -332,11 +335,16 @@ const LeadsTab = ({ data }: { data: PropertyDetailData }) => {
 interface PropertyDetailViewProps {
     data: PropertyDetailData;
     onEdit?: () => void;
+    onPublish: () => void;
+    onUnpublish: () => void;
+    isPublishing: boolean;
 }
 
-export function PropertyDetailView({ data, onEdit }: PropertyDetailViewProps) {
+export function PropertyDetailView({ data, onEdit, onPublish, onUnpublish, isPublishing }: PropertyDetailViewProps) {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'leads'>('overview');
+
+    const showUnpublish = data.status === 'published';
 
     return (
         <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-[450px_1fr] gap-8 p-10 font-[var(--font-plus-jakarta-sans)] bg-[#FDFDFD]">
@@ -512,14 +520,31 @@ export function PropertyDetailView({ data, onEdit }: PropertyDetailViewProps) {
 
                 {/* Actions */}
                 < div className="grid grid-cols-2 gap-4 pt-2" >
-                    <Button
-                        className="h-[56px] border-none shadow-none gap-2 transition-transform active:scale-[0.98] rounded-[10px]"
-                        style={{ backgroundColor: 'rgba(0, 183, 255, 0.08)', color: '#00AAFF' }}
-                        onClick={onEdit}
-                    >
-                        <Edit3 className="h-6 w-6" style={{ color: '#00AAFF' }} />
-                        <span className="text-[15px] font-normal font-[var(--font-outfit)]">Edit Property</span>
-                    </Button>
+                    {showUnpublish ? (
+                        <Button
+                            className="h-[56px] border-none shadow-none gap-2 transition-transform active:scale-[0.98] rounded-[10px]"
+                            style={{ backgroundColor: 'rgba(255, 0, 0, 0.08)', color: '#FF0000' }}
+                            onClick={onUnpublish}
+                            disabled={isPublishing}
+                        >
+                            {isPublishing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Trash2 className="h-6 w-6" />}
+                            <span className="text-[15px] font-normal font-[var(--font-outfit)]">
+                                {isPublishing ? 'Unpublishing...' : 'Unpublish from PF'}
+                            </span>
+                        </Button>
+                    ) : (
+                        <Button
+                            className="h-[56px] border-none shadow-none gap-2 transition-transform active:scale-[0.98] rounded-[10px]"
+                            style={{ backgroundColor: 'rgba(0, 183, 255, 0.08)', color: '#00AAFF' }}
+                            onClick={onPublish}
+                            disabled={isPublishing}
+                        >
+                            {isPublishing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Globe className="h-6 w-6" />}
+                            <span className="text-[15px] font-normal font-[var(--font-outfit)]">
+                                {isPublishing ? 'Publishing...' : 'Publish to PF'}
+                            </span>
+                        </Button>
+                    )}
                     <Button
                         className="h-[56px] border-none shadow-none gap-2 transition-transform active:scale-[0.98] rounded-[10px]"
                         style={{ backgroundColor: 'rgba(255, 0, 0, 0.08)', color: '#FF0000' }}

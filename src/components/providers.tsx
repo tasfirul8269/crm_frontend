@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Toaster } from 'sonner';
+import { FileOpenerProvider, FileOpenerModals } from '@/components/file-opener';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(() => new QueryClient({
@@ -28,9 +29,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     return (
         <QueryClientProvider client={queryClient}>
-            {children}
+            <FileOpenerProvider>
+                {children}
+                <FileOpenerModals />
+            </FileOpenerProvider>
             <Toaster position="bottom-right" richColors />
         </QueryClientProvider>
     );
 }
-

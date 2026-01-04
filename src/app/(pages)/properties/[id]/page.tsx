@@ -2,16 +2,19 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { getProperty, getPropertyFinderListing, getPropertyFinderStats } from '@/services/property.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getProperty, getPropertyFinderListing, getPropertyFinderStats, syncPropertyToPropertyFinder, publishToPropertyFinder, unpublishFromPropertyFinder } from '@/services/property.service';
 import { PropertyFinderLeadService } from '@/lib/services/property-finder-lead.service';
 import { PropertyDetailView, PropertyDetailData } from '@/components/properties/property-detail-view';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function StandardPropertyDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const propertyId = params.id as string;
+    const [isPublishing, setIsPublishing] = React.useState(false);
 
     const { data: property, isLoading: propertyLoading } = useQuery({
         queryKey: ['property', propertyId],
@@ -83,6 +86,7 @@ export default function StandardPropertyDetailPage() {
             whatsapp: property.assignedAgent?.whatsapp || property.assignedAgent?.phone || '971561047161',
         },
         status: (() => {
+            if (property.pfPublished) return 'published';
             if (!property.isActive) return 'draft';
             const vStatus = (pfListing?.verificationStatus || property.pfVerificationStatus || 'pending').toLowerCase();
             if (vStatus === 'approved' || vStatus === 'verified') return 'approved';
@@ -166,10 +170,47 @@ export default function StandardPropertyDetailPage() {
         ],
     };
 
+    // Publish / Unpublish Logic
+
+    const handlePublish = async () => {
+        setIsPublishing(true);
+        try {
+            // Step 1: Sync (Fetch-Merge-Push) - ensures full data submission
+            await syncPropertyToPropertyFinder(propertyId);
+            // Step 2: Publish - make it live
+            await publishToPropertyFinder(propertyId);
+            toast.success('Property synced and published successfully');
+            // Invalidate to refresh status
+            queryClient.invalidateQueries({ queryKey: ['property', propertyId] });
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to publish property');
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    const handleUnpublish = async () => {
+        setIsPublishing(true);
+        try {
+            await unpublishFromPropertyFinder(propertyId);
+            toast.success('Property unpublished successfully');
+            queryClient.invalidateQueries({ queryKey: ['property', propertyId] });
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to unpublish property');
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
     return (
         <PropertyDetailView
             data={transformedData}
             onEdit={() => router.push(`/properties/${propertyId}/edit`)}
+            onPublish={handlePublish}
+            onUnpublish={handleUnpublish}
+            isPublishing={isPublishing}
         />
     );
 }

@@ -114,9 +114,11 @@ export function TenancyWizard({ property, onBack }: TenancyWizardProps) {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            await createTenancyContract(formData as CreateTenancyContractData);
+            const result = await createTenancyContract(formData as CreateTenancyContractData);
             toast.success('Tenancy Contract created successfully!');
-            router.push('/file-manager'); // Go to file manager or dashboard
+            // Redirect to success page with PDF URL
+            const pdfUrl = encodeURIComponent(result.pdfUrl || '');
+            router.push(`/tenancy/success?pdfUrl=${pdfUrl}`);
         } catch (error) {
             console.error(error);
             toast.error('Failed to create contract');

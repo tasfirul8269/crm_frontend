@@ -27,23 +27,27 @@ export function PropertySelectionStep({ onSelect }: PropertySelectionStepProps) 
     const [activeSearch, setActiveSearch] = useState('');
     const [selectedProperty, setSelectedProperty] = useState<Property | OffPlanProperty | null>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [filterPurpose, setFilterPurpose] = useState<'All' | 'Rent' | 'Sale'>('All');
 
     const router = useRouter();
 
     const { data: propertiesData, isLoading: isLoadingProps } = useQuery({
-        queryKey: ['properties', activeSearch],
+        queryKey: ['properties', activeSearch, filterPurpose],
         queryFn: () => getProperties({
             search: activeSearch || undefined,
             page: 1,
-            limit: 40
+            limit: 40,
+            purpose: filterPurpose === 'All' ? undefined : filterPurpose
         }),
     });
 
+    // Only fetch off-plan if we are NOT filtering for Rent (Off-plan is typically Sales)
     const { data: offPlanProperties, isLoading: isLoadingOffPlan } = useQuery({
         queryKey: ['off-plan-properties', activeSearch],
         queryFn: () => offPlanPropertyService.getAll({
             search: activeSearch || undefined,
         }),
+        enabled: filterPurpose !== 'Rent'
     });
 
     // Suggestion logic
@@ -51,7 +55,7 @@ export function PropertySelectionStep({ onSelect }: PropertySelectionStepProps) 
         if (!searchTerm || searchTerm.length < 2) return [];
         const combined = [
             ...(propertiesData?.data || []),
-            ...(offPlanProperties || [])
+            ...(filterPurpose !== 'Rent' ? (offPlanProperties || []) : [])
         ];
         return combined
             .filter(p => {
@@ -59,18 +63,18 @@ export function PropertySelectionStep({ onSelect }: PropertySelectionStepProps) 
                 return title?.toLowerCase().includes(searchTerm.toLowerCase());
             })
             .slice(0, 5);
-    }, [searchTerm, propertiesData, offPlanProperties]);
+    }, [searchTerm, propertiesData, offPlanProperties, filterPurpose]);
 
-    const isLoading = isLoadingProps || isLoadingOffPlan;
+    const isLoading = isLoadingProps || (filterPurpose !== 'Rent' && isLoadingOffPlan);
 
     const handleSelect = (property: Property | OffPlanProperty) => {
-        setSelectedProperty(prev => prev?.id === property.id ? null : property);
+        // Auto-advance
+        onSelect(property);
     };
 
     const handleSuggestionClick = (property: Property | OffPlanProperty) => {
-        setSelectedProperty(property);
-        setShowSuggestions(false);
         onSelect(property); // Auto-proceed
+        setShowSuggestions(false);
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -80,20 +84,36 @@ export function PropertySelectionStep({ onSelect }: PropertySelectionStepProps) 
         }
     };
 
-    const handleNext = () => {
-        if (selectedProperty) {
-            onSelect(selectedProperty);
-        }
-    };
+    // Removed handleNext as it's no longer needed for primary flow, 
+    // but kept just in case user selects then somehow cancels auto-nav (unlikely with new flow)
+    // Actually, we can remove the Next button if auto-advance is the rule.
+    // User requested: "so when we select a property it will direct open... no need to scroll and then click next button"
 
     return (
         <div className="h-screen bg-white flex flex-col overflow-hidden">
             <div className="flex-1 p-8 max-w-[1400px] mx-auto w-full flex flex-col min-h-0">
                 {/* Header Section - EXACT IMAGE MATCH */}
-                <div className="flex-shrink-0 flex items-center gap-8 mb-12">
-                    <h1 className="text-[28px] font-semibold text-[#1A1A1A]" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                        Select Property
-                    </h1>
+                <div className="flex-shrink-0 flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-8">
+                        <h1 className="text-[28px] font-semibold text-[#1A1A1A]" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                            Select Property
+                        </h1>
+
+                        <div className="flex bg-gray-100 p-1 rounded-xl">
+                            {['All', 'Rent', 'Sale'].map((type) => (
+                                <button
+                                    key={type}
+                                    onClick={() => setFilterPurpose(type as any)}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filterPurpose === type
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-900'
+                                        }`}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
                     {/* Inline Search Bar with Suggestions */}
                     <div className="relative w-full max-w-[340px]">
@@ -253,15 +273,6 @@ export function PropertySelectionStep({ onSelect }: PropertySelectionStepProps) 
                         onClick={() => router.back()}
                     >
                         Cancel
-                    </Button>
-
-                    <Button
-                        className="h-[56px] px-14 bg-[#E1F5FE] text-[#00B0FF] font-semibold hover:bg-[#CCEEFF] rounded-2xl gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed group border-none shadow-none"
-                        onClick={handleNext}
-                        disabled={!selectedProperty}
-                    >
-                        Next
-                        <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                     </Button>
                 </div>
             </div>

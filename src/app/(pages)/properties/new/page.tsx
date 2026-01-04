@@ -39,13 +39,14 @@ export default function AddPropertyPage() {
     const [showCreateNoc, setShowCreateNoc] = useState(false);
     const [createdNocData, setCreatedNocData] = useState<NocData | null>(null);
 
-    // Check for URL parameters to directly start NOC creation
+    // Check for URL parameters to directly start NOC creation (only for rent)
     useEffect(() => {
         const category = searchParams.get('category') as 'residential' | 'commercial' | null;
         const purpose = searchParams.get('purpose') as 'sell' | 'rent' | null;
         const startNoc = searchParams.get('startNoc');
 
-        if (category && purpose && startNoc === 'true') {
+        // Only start NOC creation for rent properties
+        if (category && purpose === 'rent' && startNoc === 'true') {
             setSelectedCategory(category);
             setSelectedPurpose(purpose);
             setShowCreateNoc(true);
@@ -64,7 +65,12 @@ export default function AddPropertyPage() {
         if (currentStep === 0 && selectedCategory) {
             setCurrentStep(1);
         } else if (currentStep === 1 && selectedPurpose) {
-            setCurrentStep(2);
+            // NOC is only for rent properties - skip NOC step for sell
+            if (selectedPurpose === 'sell') {
+                setCurrentStep(3); // Skip straight to property form
+            } else {
+                setCurrentStep(2); // Go to NOC selection for rent
+            }
         } else if (currentStep === 2 && nocFile) {
             setCurrentStep(3);
         }

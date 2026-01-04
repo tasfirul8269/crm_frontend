@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { MapPin, BedDouble, Bath, Maximize2, Phone, Copy, Eye, Gauge, Check, X, Key, Tag, Pencil } from 'lucide-react';
 import { Property, getProperty } from '@/services/property.service';
 import { calculatePropertyScore, getScoreColor } from '@/lib/utils/property-scoring';
@@ -27,7 +28,9 @@ interface PropertyCardProps {
 export function PropertyCard({ property, onStatusChange, onToggleActive, onClick, isSelected }: PropertyCardProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const score = calculatePropertyScore(property); // Now supports Property type
+    // Use real Property Finder score when available, fallback to calculated score
+    const calculatedScore = calculatePropertyScore(property);
+    const score = property.pfQualityScore ?? calculatedScore;
     const scoreColor = getScoreColor(score);
 
     const isDraft = !property.isActive;
@@ -386,7 +389,18 @@ export function PropertyCard({ property, onStatusChange, onToggleActive, onClick
                     </div>
                     <div className="flex items-center gap-1 text-[#9E9E9E]">
                         <span className="text-[10px] font-normal">{property.reference || 'REF-001'}</span>
-                        <Copy className="h-2.5 w-2.5 cursor-pointer hover:text-[#1A1A1A]" />
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const textToCopy = property.reference || 'REF-001';
+                                navigator.clipboard.writeText(textToCopy);
+                                toast.success(`Reference ${textToCopy} copied to clipboard`);
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            title="Copy Reference"
+                        >
+                            <Copy className="h-2.5 w-2.5 cursor-pointer hover:text-[#1A1A1A]" />
+                        </button>
                     </div>
                 </div>
             </div>

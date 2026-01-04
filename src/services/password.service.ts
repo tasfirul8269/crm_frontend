@@ -4,15 +4,17 @@ import api from '@/lib/api/axios';
 export interface PasswordListItem {
     id: string;
     title: string;
+    username: string; // decrypted
+    password: string; // decrypted
     note: string | null;
+    logoUrl?: string | null;
     createdAt: string;
     hasAccess: boolean;
+    accessIds?: string[];
 }
 
 export interface PasswordDetails extends PasswordListItem {
-    username: string; // decrypted
-    password: string; // decrypted
-    accessIds: string[];
+    // keeping for compatibility, though effectively same now
 }
 
 export const getPasswords = async (): Promise<PasswordListItem[]> => {

@@ -93,13 +93,14 @@ export function Topbar() {
                         {/* Tools Section */}
                         <p className="text-[15px] font-normal text-[#222F3E] mb-4">Tools</p>
                         <div className="grid grid-cols-4 gap-1 mb-5">
-                            <button
-                                onClick={() => handleUnderDevClick('Watermark Tool')}
+                            <Link
+                                href="/settings/watermarks"
+                                onClick={() => setIsRapidToolsOpen(false)}
                                 className="flex flex-col items-center gap-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 <img src="/svg/watermark_icon.svg" alt="Watermark" className="h-6 w-6" />
                                 <span className="text-[10px] text-[#8E99A4]">Watermark</span>
-                            </button>
+                            </Link>
                             <button
                                 onClick={() => handleUnderDevClick('Password Tool')}
                                 className="flex flex-col items-center gap-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"

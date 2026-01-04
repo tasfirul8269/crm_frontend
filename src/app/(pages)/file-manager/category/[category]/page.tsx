@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api/axios';
 import { ChevronLeft, Plus, MoreVertical } from 'lucide-react';
 import Image from 'next/image';
+import { useFileOpener, getFileType } from '@/components/file-opener';
 
 // Helper Functions
 function formatSize(bytes: number) {
@@ -53,6 +54,7 @@ const getFileIconPath = (name: string, mime: string): string => {
 export default function CategoryPage() {
     const params = useParams();
     const router = useRouter();
+    const { openFile } = useFileOpener();
     const category = params.category as string;
     const [files, setFiles] = useState<FileItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -121,7 +123,11 @@ export default function CategoryPage() {
                             <div
                                 key={file.id}
                                 className="bg-[#EEF5FA] rounded-[20px] overflow-hidden cursor-pointer hover:shadow-md transition-shadow group p-[10px]"
-                                onClick={() => window.open(file.url, '_blank')}
+                                onClick={() => openFile({
+                                    url: file.url,
+                                    name: file.name,
+                                    type: getFileType(file.url)
+                                })}
                             >
                                 {/* Thumbnail Area */}
                                 <div className="aspect-[4/3] bg-white rounded-[12px] relative overflow-hidden">
