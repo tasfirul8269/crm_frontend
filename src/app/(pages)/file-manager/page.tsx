@@ -44,9 +44,7 @@ export default function FileManagerPage() {
         queryFn: () => fileManagerService.getContents(),
     });
 
-    if (isContentsLoading) {
-        return <FileManagerSkeleton />;
-    }
+
 
     const { data: statsData } = useQuery({
         queryKey: ['storage-stats'],
@@ -216,6 +214,10 @@ export default function FileManagerPage() {
 
         return ext || 'FILE';
     };
+
+    if (isContentsLoading) {
+        return <FileManagerSkeleton />;
+    }
 
     return (
         <div className="flex bg-[#F2F7FA] min-h-screen">
